@@ -12,6 +12,10 @@ Skry is a **query-time** entity-neighborhood projection over an existing vector 
 
 Companion project: [`skein-kg`](https://github.com/hrabanazviking/skein-kg) — the static woven graph.
 
+---
+
+![https://raw.githubusercontent.com/hrabanazviking/skry-kg/refs/heads/main/Screenshot_20260518_173244.png](https://raw.githubusercontent.com/hrabanazviking/skry-kg/refs/heads/main/Screenshot_20260518_173244.png)
+
 ## The trick
 
 A conventional KG extraction pipeline reads every chunk through an LLM and writes structured triples to a database. Skry inverts that: **the graph already exists implicitly in your embeddings.** Skry just projects a slice of it on demand.
