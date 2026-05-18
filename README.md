@@ -82,6 +82,10 @@ Co-invented by Volmarr Wyrd and Claude during a single session, May 2026. Lives 
 
 ---
 
+![https://raw.githubusercontent.com/hrabanazviking/skry-kg/refs/heads/main/MIT_license_Rune_Forge_AI.jpeg](https://raw.githubusercontent.com/hrabanazviking/skry-kg/refs/heads/main/MIT_license_Rune_Forge_AI.jpeg)
+
+---
+
 ## License
 
 MIT License
@@ -107,4 +111,13 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 ---
+
+![https://raw.githubusercontent.com/hrabanazviking/skry-kg/refs/heads/main/IMG_0666.jpeg](https://raw.githubusercontent.com/hrabanazviking/skry-kg/refs/heads/main/IMG_0666.jpeg)
+
+---
+
+![https://raw.githubusercontent.com/hrabanazviking/skry-kg/refs/heads/main/IMG_0665.jpeg](https://raw.githubusercontent.com/hrabanazviking/skry-kg/refs/heads/main/IMG_0665.jpeg)
+
+---
+
 
