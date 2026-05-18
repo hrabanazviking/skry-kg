@@ -21,6 +21,8 @@ No batch, no overnight grind, no autoregressive generation. Works the instant a 
 
 ## Why "Skry"
 
+> "This sure beats melting my gaming laptop!"
+
 Scrying is the practice of looking into a reflective medium — water, a crystal, a polished disc — to see things distant or hidden. Here the medium is the embedding space; the "things hidden" are the entity neighborhoods implicit in it.
 
 ## Inputs
