@@ -19,6 +19,12 @@ When you ask about an entity `E`:
 
 No batch, no overnight grind, no autoregressive generation. Works the instant a new document is ingested.
 
+---
+
+![https://raw.githubusercontent.com/hrabanazviking/skry-kg/refs/heads/main/39b17892-706e-4a0f-afa6-a5e8a2081602.jpeg](https://raw.githubusercontent.com/hrabanazviking/skry-kg/refs/heads/main/39b17892-706e-4a0f-afa6-a5e8a2081602.jpeg)
+
+---
+
 ## Why "Skry"
 
 > "This sure beats melting my gaming laptop!"
