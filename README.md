@@ -70,7 +70,7 @@ result = skry(
 
 ## Status
 
-Co-invented by a user and Claude during a single session, May 2026. Lives at `~/ai/skry-kg/`. Open to becoming a real library if useful to others.
+Co-invented by Volmarr Wyrd and Claude during a single session, May 2026. Lives at `~/ai/skry-kg/`. Open to becoming a real library if useful to others.
 
 ## License
 
