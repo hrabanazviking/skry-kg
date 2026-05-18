@@ -4,7 +4,7 @@
 
 Skry is a **query-time** entity-neighborhood projection over an existing vector store. There is no precomputed knowledge graph: when you ask "what is Odin connected to?", Skry computes the answer on the fly in ~100 ms.
 
-Companion project: [`skein-kg`](https://example.invalid/skein-kg) — the static woven graph.
+Companion project: [`skein-kg`](https://github.com/hrabanazviking/skein-kg) — the static woven graph.
 
 ## The trick
 
@@ -32,7 +32,7 @@ documents (id, title, …)
 chunks    (id, document_id, text, embedding vector(N), …)
 ```
 
-If a `skein_entities` table is present (built by [`skein-kg`](https://example.invalid/skein-kg)), Skry uses it as a known-entity allow-list — much higher precision than open-vocabulary regex.
+If a `skein_entities` table is present (built by [`skein-kg`](https://github.com/hrabanazviking/skein-kg)), Skry uses it as a known-entity allow-list — much higher precision than open-vocabulary regex.
 
 Skry writes nothing.
 
