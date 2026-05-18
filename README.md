@@ -1,3 +1,9 @@
+---
+
+![https://raw.githubusercontent.com/hrabanazviking/skry-kg/refs/heads/main/a56c7d53-a787-4a0d-979c-18a40a9bb1c1.jpeg](https://raw.githubusercontent.com/hrabanazviking/skry-kg/refs/heads/main/a56c7d53-a787-4a0d-979c-18a40a9bb1c1.jpeg)
+
+---
+
 # Skry
 
 > *see what an entity is woven into*
