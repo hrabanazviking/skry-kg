@@ -11,6 +11,7 @@ No precomputation, no storage. Reads the existing chunks/embedding columns.
 """
 from __future__ import annotations
 
+import logging
 import re
 from collections import defaultdict
 
@@ -18,6 +19,11 @@ import httpx
 import numpy as np
 import psycopg
 from pgvector.psycopg import register_vector
+
+
+# docs/bugs/0005: module-level logger so the Law of Fault Tolerance can
+# actually be enforced (warnings go somewhere).
+log = logging.getLogger(__name__)
 
 
 # Common single tokens (case-insensitive) to drop when we don't have a vocab.
@@ -32,7 +38,12 @@ _STOP_SURFACE = {
     "Chapter", "Section", "Page", "Volume",
 }
 
-_PROPER_RX = re.compile(r"\b[A-ZÀ-Ý][a-zà-ÿ]+(?:[ \-'][A-ZÀ-Ý][a-zà-ÿ]+)*\b")
+# docs/bugs/0001: range extended to include Þ (U+00DE) so Norse proper
+# nouns (Þórr, Þrúðr, Ðagr) match. ß added to lowercase set for German.
+_PROPER_RX = re.compile(
+    r"\b[A-ZÀ-Þ][a-zà-ÿß]+(?:[ \-'][A-ZÀ-Þ][a-zà-ÿß]+)*\b",
+    re.UNICODE,
+)
 
 
 def _normalize(s: str) -> str:
@@ -114,12 +125,78 @@ def skry(
     db_url: str, *, ollama_url: str, embed_model: str, query: str,
     top_chunks: int = 60, top_entities: int = 20, min_name_len: int = 3,
 ) -> dict:
+    """Query-time entity-neighborhood projection.
+
+    Embeds the query via Ollama, retrieves the top-K most-similar chunks
+    from Postgres, extracts proper-noun candidates (filtered by the optional
+    `skein_entities` vocabulary if present), and ranks co-occurring
+    entities by ``count × mean_similarity``.
+
+    Parameters
+    ----------
+    db_url : str
+        libpq connection string for the host Postgres (e.g.
+        ``postgresql:///knowledge``).
+    ollama_url : str
+        Base URL of the Ollama server (e.g. ``http://localhost:11434``).
+    embed_model : str
+        Name of the embedding model. **Must match the model used to embed
+        the corpus** — see ``PHILOSOPHY.md`` and ``docs/bugs/0006-embed-model-mismatch.md``
+        for why a mismatch silently produces garbage results.
+    query : str
+        The phrase or entity name to skry. 1-10000 characters.
+    top_chunks : int, default 60
+        Number of chunks to retrieve from semantic search. Range [1, 1000].
+    top_entities : int, default 20
+        Max entities to return. Range [1, 500].
+    min_name_len : int, default 3
+        Open-vocab mode: minimum length of a candidate proper noun.
+
+    Returns
+    -------
+    dict
+        ``{"query", "top_chunks", "vocab_mode" ("skein" | "open"),
+        "entities": [{"name", "count", "mean_sim", "score", "chunks",
+        "n_docs"}, ...], "evidence_chunk_ids": [int, ...]}``. See
+        ``INTERFACE.md`` for the full contract.
+
+    Raises
+    ------
+    ValueError
+        If ``query`` is empty/too long or numeric params out of range.
+    httpx.HTTPError
+        If Ollama is unreachable.
+    psycopg.OperationalError
+        If Postgres is unreachable.
+
+    Notes
+    -----
+    Per Law of Fault Tolerance (PROJECT_LAWS.md), a `skein_entities`
+    schema problem falls back to open-vocab mode with a logged warning;
+    it does not raise.
+    """
+    # docs/bugs/0004: bound every untrusted numeric input.
+    if not query or not query.strip():
+        raise ValueError("query must be non-empty")
+    if len(query) > 10000:
+        raise ValueError("query too long (max 10000 chars)")
+    if not (1 <= top_chunks <= 1000):
+        raise ValueError("top_chunks must be in [1, 1000]")
+    if not (1 <= top_entities <= 500):
+        raise ValueError("top_entities must be in [1, 500]")
+
     with httpx.Client() as client:
         q_emb = _embed_one(client, ollama_url, embed_model, query)
     with psycopg.connect(db_url) as conn:
         register_vector(conn)
         rows = retrieve_chunks(conn, q_emb, k=top_chunks)
-        vocab = _known_vocab(conn)
+        # docs/bugs/0002: vocab lookup must not crash skry() if skein_entities
+        # has unexpected schema. Per Law of Fault Tolerance, log and fall back.
+        try:
+            vocab = _known_vocab(conn)
+        except Exception as e:
+            log.warning("skry: skein vocab lookup failed (%s) — falling back to open mode", e)
+            vocab = None
 
     # Aggregate per-entity stats: appearance count + mean similarity + sample chunks
     counts: dict[str, int] = defaultdict(int)
