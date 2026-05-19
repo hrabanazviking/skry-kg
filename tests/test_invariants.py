@@ -159,3 +159,32 @@ def test_stop_surface_contains_common_noise():
     """Days, months, common articles are always in the stop list."""
     for word in ("The", "Monday", "May", "December", "Chapter"):
         assert word in _STOP_SURFACE, f"stop list missing {word!r}"
+
+
+# ─── Bug 0011: non-Latin proper-noun pickup ──────────────────────────────
+
+@pytest.mark.parametrize("text,expected", [
+    ("龙王 lives beyond the gate", "龙王"),
+    ("孔子 taught the ren", "孔子"),
+    ("Свято Олег ruled in Kyiv", "Свято Олег"),       # Cyrillic Title Case (multi-word captured)
+    ("Иван Грозный was tsar", "Иван Грозный"),         # Same — both tokens captured
+])
+def test_non_latin_proper_extraction(text, expected):
+    """CJK ideograph runs and Cyrillic Title-Case names extracted.
+
+    Multi-word Cyrillic phrases are captured as one entity (same as
+    Latin "Sif Gold-Hair") — the regex's compound-name path applies."""
+    found = extract_candidates(text, vocab=None, min_len=1)
+    assert expected in found, f"expected {expected!r} in {text!r}, got {found}"
+
+
+# ─── Bug 0009: configurable evidence cap ─────────────────────────────────
+
+def test_max_evidence_chunks_validated():
+    """`max_evidence_chunks` is bounded and rejects bad values."""
+    with pytest.raises(ValueError, match="max_evidence_chunks"):
+        skry("postgresql://nowhere/x", ollama_url="http://x", embed_model="m",
+             query="q", max_evidence_chunks=0)
+    with pytest.raises(ValueError, match="max_evidence_chunks"):
+        skry("postgresql://nowhere/x", ollama_url="http://x", embed_model="m",
+             query="q", max_evidence_chunks=99999)

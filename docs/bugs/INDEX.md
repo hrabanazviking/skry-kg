@@ -8,8 +8,8 @@
 
 ## Open
 
-_none — all P0/P1 from session 2 have been promoted to dedicated notes and
-fixed additively this session._
+_None. As of session 3 the entire known bug backlog is closed — 12/12
+resolved across two same-day sessions._
 
 ## Resolved (Session 2 — 2026-05-18)
 
@@ -22,16 +22,20 @@ fixed additively this session._
 | 0005 | Library uses no `logging`; warnings impossible | medium | `skry/core.py` (module) | [bug](0005-skry-no-logger.md) |
 | 0006 | Embedding-model mismatch risk undocumented | medium | `skry/core.py` + INTERFACE.md | [bug](0006-embed-model-mismatch.md) |
 
-## Deferred (open in index, fix later)
+## Deferred
 
-| # | Title | Severity | File | Reason for deferral |
+_None. Backlog is empty._
+
+## Resolved (Session 3 — 2026-05-18, "kill the backlog")
+
+| # | Title | Severity | File | Note |
 |---|---|---|---|---|
-| 0007 | `documents.title` may be NULL; type hint promises `str` | low | `skry/core.py:50-51` | Cosmetic; rare in well-formed corpora. |
-| 0008 | Apostrophe handling fragments possessives ("Odin's Throne") | low | `skry/core.py:35` | Intentional trade-off for O'Brien-style names. Documented. |
-| 0009 | `evidence_chunk_ids` hard-coded to 10 | low | `skry/core.py:162` | Documented in INTERFACE.md; configurable in future minor version. |
-| 0010 | `extract_candidates` does both vocab and open mode | low | `skry/core.py:80-110` | 31 lines, well under 50; pragmatic single-function design preserved. |
-| 0011 | CJK proper nouns won't match the regex | medium | `skry/core.py:35` | Same root as skein 0001; deferred until both can be fixed with a shared approach. |
-| 0012 | No retry on Ollama embedding failure | low | `skry/core.py:42-46` | Skry's contract is "raise on failure"; retry is the caller's job. Documented in PHILOSOPHY. |
+| 0007 | `documents.title` nullable; type hint promised `str` | low | `skry/core.py` | `retrieve_chunks` return type updated to `str | None` for the title field. Docstring notes the parent schema permits NULL. |
+| 0008 | Apostrophe possessive handling | low | `skry/core.py` | Resolved as no-action — see [bug note](0008-possessive-handling.md). Intentional trade-off documented; vocab mode covers the gap. |
+| 0009 | `evidence_chunk_ids` hard-coded to 10 | low | `skry/core.py` | Added `max_evidence_chunks` parameter (default 10, range 1..500). Documented in INTERFACE.md and validated. |
+| 0010 | `extract_candidates` does both modes | low | `skry/core.py` | Resolved as no-action — see [bug note](0010-extract-candidates-size.md). 31 lines is fine; splitting would harm clarity. |
+| 0011 | CJK proper nouns not matched | medium | `skry/core.py` | Added `_PROPER_RX_NON_LATIN` with patterns for CJK ideographs, Hiragana, Katakana, Hangul, Cyrillic Title-Case, Arabic, and Devanagari. `extract_candidates` now runs both passes. Tested on 龙王 / 孔子 / Свято Олег. |
+| 0012 | No retry on Ollama embedding failure | low | `skry/core.py` | Resolved as no-action — see [bug note](0012-no-retry-on-ollama.md). Skry's contract is "raise to caller"; retry is the caller's policy. Skein's longer-running build has retry; Skry's 100ms queries don't need it. |
 
 ---
 

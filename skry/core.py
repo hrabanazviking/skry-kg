@@ -45,6 +45,23 @@ _PROPER_RX = re.compile(
     re.UNICODE,
 )
 
+# docs/bugs/0011: a second pattern for non-Latin proper nouns. Catches
+# runs of 2-12 CJK ideographs (Han / Japanese kanji), Hiragana, Katakana,
+# Hangul, Cyrillic capitalized words, Arabic name-like sequences, and
+# Devanagari. Conservative on purpose: open-vocab mode for these scripts
+# is noisier than for Latin since "what counts as a name" is murkier
+# without case. Vocab-restricted mode (Skein present) is the recommended
+# path for these corpora.
+_PROPER_RX_NON_LATIN = re.compile(
+    r"[一-鿿㐀-䶿]{2,12}"          # CJK Unified Ideographs
+    r"|[぀-ゟ゠-ヿ]{2,12}"          # Hiragana + Katakana
+    r"|[가-힯]{2,12}"                       # Hangul syllables
+    r"|\b[А-Я][а-я]+(?:[ \-'][А-Я][а-я]+)*\b"  # Cyrillic Title Case
+    r"|[؀-ۿݐ-ݿ]{3,40}"           # Arabic (no case)
+    r"|[ऀ-ॿ]{3,40}",                       # Devanagari (no case)
+    re.UNICODE,
+)
+
 
 def _normalize(s: str) -> str:
     return re.sub(r"\s+", " ", s.strip()).lower()
@@ -59,8 +76,13 @@ def _embed_one(client: httpx.Client, url: str, model: str, text: str) -> np.ndar
 
 def retrieve_chunks(
     conn: psycopg.Connection, embedding: np.ndarray, *, k: int,
-) -> list[tuple[int, str, float, int, str]]:
-    """Top-K chunks by cosine similarity. Returns (id, text, similarity, doc_id, doc_title)."""
+) -> list[tuple[int, str, float, int, str | None]]:
+    """Top-K chunks by cosine similarity.
+
+    Returns ``(id, text, similarity, doc_id, doc_title)``. The doc_title is
+    ``str | None`` because the parent corpus' ``documents.title`` column is
+    nullable in the standard ingest schema (docs/bugs/0007).
+    """
     with conn.cursor() as cur:
         cur.execute(
             """
@@ -89,8 +111,22 @@ def _known_vocab(conn: psycopg.Connection) -> dict[str, str] | None:
 
 
 def extract_candidates(text: str, vocab: dict[str, str] | None, min_len: int = 3) -> list[str]:
-    """Find proper-noun candidates in text. With vocab: only return known names."""
-    found = _PROPER_RX.findall(text)
+    """Find proper-noun candidates in `text`.
+
+    With `vocab` provided, only returns canonical names known to that vocab
+    (high precision). Without vocab, falls back to open-vocabulary regex.
+
+    docs/bugs/0011: the open-mode regex now runs two passes — a Latin-script
+    Title-Case pattern (`_PROPER_RX`) and a non-Latin pattern
+    (`_PROPER_RX_NON_LATIN`) covering CJK / Cyrillic / Arabic / Devanagari.
+    Vocab-restricted mode is still the recommended path for non-Latin
+    corpora because "what counts as a name" is murkier without case.
+    """
+    # Pass 1: Latin Title-Case. Pass 2: non-Latin scripts. De-dup preserving order.
+    found = list(_PROPER_RX.findall(text))
+    for m in _PROPER_RX_NON_LATIN.findall(text):
+        if m not in found:
+            found.append(m)
     if vocab is not None:
         out = []
         seen: set[str] = set()
@@ -124,6 +160,7 @@ def extract_candidates(text: str, vocab: dict[str, str] | None, min_len: int = 3
 def skry(
     db_url: str, *, ollama_url: str, embed_model: str, query: str,
     top_chunks: int = 60, top_entities: int = 20, min_name_len: int = 3,
+    max_evidence_chunks: int = 10,
 ) -> dict:
     """Query-time entity-neighborhood projection.
 
@@ -151,6 +188,9 @@ def skry(
         Max entities to return. Range [1, 500].
     min_name_len : int, default 3
         Open-vocab mode: minimum length of a candidate proper noun.
+    max_evidence_chunks : int, default 10
+        How many of the retrieved chunks to surface as ``evidence_chunk_ids``
+        in the response. Capped at ``top_chunks``. (docs/bugs/0009)
 
     Returns
     -------
@@ -184,6 +224,8 @@ def skry(
         raise ValueError("top_chunks must be in [1, 1000]")
     if not (1 <= top_entities <= 500):
         raise ValueError("top_entities must be in [1, 500]")
+    if not (1 <= max_evidence_chunks <= 500):
+        raise ValueError("max_evidence_chunks must be in [1, 500]")
 
     with httpx.Client() as client:
         q_emb = _embed_one(client, ollama_url, embed_model, query)
@@ -236,5 +278,5 @@ def skry(
         "top_chunks": top_chunks,
         "vocab_mode": "skein" if vocab else "open",
         "entities": entities,
-        "evidence_chunk_ids": [r[0] for r in rows[:10]],
+        "evidence_chunk_ids": [r[0] for r in rows[:max_evidence_chunks]],
     }
