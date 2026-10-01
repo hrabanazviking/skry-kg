@@ -58,3 +58,5 @@ If someone asks for:
 
 These refusals protect the library's identity. Without them, Skry becomes
 "another KG tool" and the entire reason for its existence dissolves.
+Operator setup, CLI/Python usage and host integration are documented in
+[TECHNICAL_MANUAL.md](../TECHNICAL_MANUAL.md).

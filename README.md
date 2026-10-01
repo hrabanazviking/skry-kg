@@ -6,6 +6,9 @@
 
 # Skry
 
+Read the [technical manual](TECHNICAL_MANUAL.md) for verified CLI options, private
+configuration, Python/API use, interpretation, troubleshooting and stack integration.
+
 > *see what an entity is woven into*
 
 Skry is a **query-time** entity-neighborhood projection over an existing vector store. There is no precomputed knowledge graph: when you ask "what is Odin connected to?", Skry computes the answer on the fly in ~100 ms.
@@ -139,5 +142,4 @@ Support is always appreciated, but never required. Using, sharing, testing, cont
 ![https://raw.githubusercontent.com/hrabanazviking/skry-kg/refs/heads/main/IMG_0665.jpeg](https://raw.githubusercontent.com/hrabanazviking/skry-kg/refs/heads/main/IMG_0665.jpeg)
 
 ---
-
 

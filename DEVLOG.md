@@ -126,3 +126,11 @@ tests.
 Implemented the authorized task in TASK_second_brain_resilience.md. Preserved source
 corpus and private configuration. Added behavioral regressions, verified live boundaries,
 and documented recovery contracts. Validation details are recorded in the task report.
+
+## Technical manual — 2026-10-01
+
+Added TECHNICAL_MANUAL.md and README navigation: verified CLI options, actual
+configuration wiring, vector-space compatibility, Python API, evidence/ranking,
+Skein vocabulary fallback/freshness and scoped Bifröst integration. Inspected
+source and CLI help and checked Markdown links. Documentation-only update;
+no runtime behavior, source knowledge or private settings changed.
