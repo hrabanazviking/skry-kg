@@ -12,6 +12,7 @@ No precomputation, no storage. Reads the existing chunks/embedding columns.
 from __future__ import annotations
 
 import logging
+import os
 import re
 from collections import defaultdict
 
@@ -70,7 +71,12 @@ def _normalize(s: str) -> str:
 def _embed_one(client: httpx.Client, url: str, model: str, text: str) -> np.ndarray:
     r = client.post(f"{url}/api/embed", json={"model": model, "input": [text]}, timeout=120)
     r.raise_for_status()
-    v = np.array(r.json()["embeddings"][0], dtype=np.float32)
+    payload = r.json().get("embeddings")
+    if not isinstance(payload, list) or len(payload) != 1:
+        raise ValueError("embedding service must return one query vector")
+    v = np.asarray(payload[0], dtype=np.float32)
+    if v.ndim != 1 or not v.size or not np.isfinite(v).all() or not np.any(v):
+        raise ValueError("embedding service returned an invalid query vector")
     return v
 
 
@@ -89,6 +95,7 @@ def retrieve_chunks(
             SELECT c.id, c.text, 1 - (c.embedding <=> %s::vector) AS sim,
                    d.id, d.title
             FROM chunks c JOIN documents d ON c.document_id = d.id
+            WHERE c.embedding IS NOT NULL
             ORDER BY c.embedding <=> %s::vector
             LIMIT %s
             """,
@@ -107,7 +114,18 @@ def _known_vocab(conn: psycopg.Connection) -> dict[str, str] | None:
         if not cur.fetchone()[0]:
             return None
         cur.execute("SELECT name_norm, name FROM skein_entities")
-        return {n: c for n, c in cur.fetchall()}
+        return {n: c for n, c in cur.fetchall() if n and c} or None
+
+
+def _vocab_pattern(vocab: dict[str, str]) -> re.Pattern:
+    """Compile once per query; longest names win at the same text position."""
+    names = sorted(vocab, key=lambda name: (-len(name), name))
+    alternatives = [r"\s+".join(re.escape(p) for p in name.split()) for name in names]
+    return re.compile(r"(?<!\w)(" + "|".join(alternatives) + r")(?!\w)", re.IGNORECASE)
+
+
+def _vocab_candidates(text: str, vocab: dict[str, str], pattern: re.Pattern) -> list[str]:
+    return list(dict.fromkeys(vocab[_normalize(m.group(0))] for m in pattern.finditer(text)))
 
 
 def extract_candidates(text: str, vocab: dict[str, str] | None, min_len: int = 3) -> list[str]:
@@ -122,36 +140,20 @@ def extract_candidates(text: str, vocab: dict[str, str] | None, min_len: int = 3
     Vocab-restricted mode is still the recommended path for non-Latin
     corpora because "what counts as a name" is murkier without case.
     """
+    if vocab:
+        return _vocab_candidates(text, vocab, _vocab_pattern(vocab))
     # Pass 1: Latin Title-Case. Pass 2: non-Latin scripts. De-dup preserving order.
     found = list(_PROPER_RX.findall(text))
     for m in _PROPER_RX_NON_LATIN.findall(text):
         if m not in found:
             found.append(m)
-    if vocab is not None:
-        out = []
-        seen: set[str] = set()
-        # Also try multi-word vocab keys via direct regex if not caught by proper-noun rx
-        for surface in found:
-            key = _normalize(surface)
-            if key in vocab and key not in seen:
-                out.append(vocab[key])
-                seen.add(key)
-        # Multi-token entities that don't all start with a capital may be missed
-        # by the regex; scan vocab keys with word boundaries as a fallback.
-        # (Cheap because vocab is typically a few hundred entries.)
-        for key, canonical in vocab.items():
-            if key in seen:
-                continue
-            if " " in key and re.search(rf"\b{re.escape(key)}\b", text, re.IGNORECASE):
-                out.append(canonical)
-                seen.add(key)
-        return out
     # Open vocabulary: filter the surface list
     out = []
+    stop_words = {word.casefold() for word in _STOP_SURFACE}
     for surface in found:
         if len(surface) < min_len:
             continue
-        if surface in _STOP_SURFACE:
+        if surface.casefold() in stop_words:
             continue
         out.append(surface)
     return out
@@ -229,13 +231,14 @@ def skry(
 
     with httpx.Client() as client:
         q_emb = _embed_one(client, ollama_url, embed_model, query)
-    with psycopg.connect(db_url) as conn:
+    with psycopg.connect(db_url, connect_timeout=int(os.getenv("SKRY_DB_CONNECT_TIMEOUT", "5"))) as conn:
         register_vector(conn)
         rows = retrieve_chunks(conn, q_emb, k=top_chunks)
         # docs/bugs/0002: vocab lookup must not crash skry() if skein_entities
         # has unexpected schema. Per Law of Fault Tolerance, log and fall back.
         try:
-            vocab = _known_vocab(conn)
+            with conn.transaction():
+                vocab = _known_vocab(conn)
         except Exception as e:
             log.warning("skry: skein vocab lookup failed (%s) — falling back to open mode", e)
             vocab = None
@@ -246,9 +249,13 @@ def skry(
     chunks_by_entity: dict[str, list[int]] = defaultdict(list)
     docs_by_entity: dict[str, set[int]] = defaultdict(set)
     query_key = _normalize(query)
+    vocab_pattern = _vocab_pattern(vocab) if vocab else None
 
     for cid, text, sim, doc_id, _doc_title in rows:
-        cands = extract_candidates(text, vocab, min_len=min_name_len)
+        if sim is None or not np.isfinite(sim):
+            continue
+        cands = (_vocab_candidates(text, vocab, vocab_pattern) if vocab_pattern
+                 else extract_candidates(text, None, min_len=min_name_len))
         for name in set(cands):
             key = _normalize(name)
             if key == query_key:
@@ -270,7 +277,7 @@ def skry(
             "score": round(score, 3), "chunks": chunks_by_entity[key],
             "n_docs": len(docs_by_entity[key]),
         })
-    entities.sort(key=lambda e: e["score"], reverse=True)
+    entities.sort(key=lambda e: (-e["score"], e["name"]))
     entities = entities[:top_entities]
 
     return {

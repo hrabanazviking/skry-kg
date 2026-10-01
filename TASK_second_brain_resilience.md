@@ -30,3 +30,11 @@ Add regression tests for observed failure paths, run existing tests, validate se
 3. Implement the scoped fixes and regression tests.
 4. Deploy locally and verify behavior.
 5. Update architecture/interface/devlog documentation and push verified changes.
+
+## Completed verification
+
+2026-09-30: 35 tests pass, including malformed embeddings, lowercase and Unicode
+vocabulary matching and empty vocabulary behavior. Ruff passes for changed core
+and regression-test modules. The deployed Bifrost integration returns a live
+20-entity neighborhood with Skein vocabulary. Source knowledge tables remain
+read-only through Skry. Tests do not require live database or Ollama services.

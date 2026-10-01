@@ -103,3 +103,10 @@ higher recall).
 - The internal layout of `extract_candidates`'s scoring path. Future
   versions may swap regex for a small NER model without changing the
   function's signature or contract.
+
+## 2026-09-30 resilience guarantees
+
+Database connection setup has a bounded timeout. Embedding response cardinality,
+dimensions, finiteness and nonzero vectors are validated before use. Existing
+public function signatures remain stable.
+Known vocabulary lookup is isolated in a savepoint so optional schema errors do not poison the parent transaction. Empty vocabulary uses open mode. Known names match case-insensitively, including single-token names and whitespace-separated Unicode names. Candidate patterns are compiled once per query.
