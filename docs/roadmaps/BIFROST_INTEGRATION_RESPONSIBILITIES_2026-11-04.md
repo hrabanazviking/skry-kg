@@ -45,3 +45,23 @@ Remain fast and read-only while consuming versioned Skein graph generations and 
 
 **Canonical authority:** The primary Bifröst Viewer roadmap above resolves conflicts; individual source code and verified deployed evidence establish what is actually implemented.
 
+
+## Superseding 2026-11-19 second-brain roadmap: folders and multimodal lore
+
+The owner-approved newer requirements are detailed in Bifröst's canonical [additive roadmap](https://github.com/hrabanazviking/bifrost-viewer/blob/docs/second-brain-incremental-multimodal-gateway-2026-11-19/docs/roadmaps/SECOND_BRAIN_ADDITIVE_INCREMENTAL_MULTIMODAL_GATEWAY_2026-11-19.md) and [managed raw library / folder dedup plan](https://github.com/hrabanazviking/bifrost-viewer/blob/docs/second-brain-incremental-multimodal-gateway-2026-11-19/docs/roadmaps/SECOND_BRAIN_MANAGED_RAW_LIBRARY_FOLDERS_2026-11-19.md).
+
+**Skry remains strictly read-only** and does not watch files, write source records, compute embeddings for ingestion, or replace the existing API. Bifröst/Ingest track raw file locations, multiple identical copies, document versions and folder category ancestry. Skein computes optional derived changes. Skry should consume only published, versioned, provenance-bearing representations through its documented query-time boundary.
+
+- Allow Bifröst to request read-only category- or folder-aware query results, including direct and descendant matches, stable source IDs and active file locations.
+- If two files share content hashes but are in different folders, report all permitted folder associations without inventing two independent content facts.
+- If a file moves, return its updated current path/category and optional historical path label without requiring a content re-embedding or unrelated query graph rebuild.
+- When chunks change, return only validated current evidence and generation IDs; do not cite stale retracted chunks.
+- For image/audio/video, return retrieved multimodal segment/caption/asset references and provenance **only through optional adapter contracts**; do not turn Skry's no-storage/no-generation engine into a vision model, raw-media server or duplicate memory database.
+- Keep a read-only, whole-brain retrieval default for authorized Janitor/SillyTavern character gateway clients; folder taxonomy is useful metadata rather than mandatory per-character collection permissions.
+- Tests: folder rename, move, duplicate copy, changed version, disconnected root, missing permissions, current-vs-old generation and existing search response compatibility.
+
+**Status:** specification only; neither this note nor the canonical plan proves a deployed feature. Repoint links to the merged main-branch canonical docs after acceptance.
+
+## Three-tier retrieval composition (owner decision 2026-11-19)
+
+[Canonical three-tier memory architecture](https://github.com/hrabanazviking/bifrost-viewer/blob/docs/second-brain-incremental-multimodal-gateway-2026-11-19/docs/roadmaps/SECOND_BRAIN_THREE_TIER_MEMORY_ARCHITECTURE_2026-11-19.md): immutable **long-term** evidence, mutable **medium-term** focus domains, volatile **short-term** session context. Skry remains read-only: it returns stable source evidence IDs, currentness/supersession where available, and version/generation tags; it does not write archive payloads, focus weights, volatile sessions, source locations or derived graphs. Bifröst's Memory Composer may boost Skry's read-only results with current medium focus and immediate short-term question context; these signals must not override accepted long-term facts without provenance or hide the rest of the brain. A character may read all authorized long-term and medium evidence through the universal gateway without per-character collection tuning, while separate conversations have distinct ephemeral buffers. Test read-only boundaries, correction/currentness, focus boost without corpus writes, and empty/expired sessions.
